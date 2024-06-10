@@ -1,80 +1,104 @@
 import css from './contact_form.module.css';
 import { nanoid } from 'nanoid';
-import { Component } from 'react';
+import { useState } from 'react';
 
-export class ContactForm extends Component {
-  state = {
-    name: '',
-    number: '',
+export const ContactForm = ({ fillContacts }) => {
+  const [name, setName] = useState('');
+  const [number, setNumber] = useState('');
+  const [errors, setErrors] = useState({ name: '', number: '' });
+
+  const namePattern = new RegExp(
+    "^[a-zA-Zа-яА-Я]+([' -][a-zA-Zа-яА-Я ]?[a-zA-Zа-яА-Я]*)*$"
+  );
+  const numberPattern = new RegExp(
+    '\\+?\\d{1,4}?([-\\.\\s]?\\(?\\d{1,3}\\)?[-\\.\\s]?\\d{1,4}[-\\.\\s]?\\d{1,4}[-\\.\\s]?\\d{1,9})?'
+  );
+
+  const setOptions = {
+    name: setName,
+    number: setNumber,
   };
 
-  onChange = e => {
-    const { name, value } = e.target;
-
+  const validateField = (name, value) => {
     let pattern;
+    let errorMessage = '';
+
     if (name === 'name') {
-      pattern = new RegExp(
-        "^[a-zA-Zа-яА-Я]+([' -][a-zA-Zа-яА-Я ]?[a-zA-Zа-яА-Я]*)*$"
-      );
+      pattern = namePattern;
+      if (!pattern.test(value)) {
+        errorMessage = 'Invalid name format.';
+      }
     } else if (name === 'number') {
-      pattern =
-        '\\+?\\d{1,4}?([-\\.\\s]?\\(?\\d{1,3}\\)?[-\\.\\s]?\\d{1,4}[-\\.\\s]?\\d{1,4}[-\\.\\s]?\\d{1,9})?';
+      pattern = numberPattern;
+      if (!pattern.test(value)) {
+        errorMessage = 'Invalid number format.';
+      }
     }
 
-    if (!value || !pattern || value.match(pattern)) {
-      this.setState({
-        [name]: value,
-      });
+    setErrors(prevErrors => ({
+      ...prevErrors,
+      [name]: errorMessage,
+    }));
+
+    return errorMessage === '';
+  };
+
+  const onChange = e => {
+    const { name, value } = e.target;
+    if (validateField(name, value)) {
+      setOptions[name](value);
     }
   };
 
-  onSubmit = e => {
+  const onSubmit = e => {
     e.preventDefault();
-    const { name, number } = this.state;
-    const contact = {
-      id: nanoid(),
-      name: name.trim(),
-      number: number,
-    };
-    this.props.fillContacts(contact);
+    const isNameValid = validateField('name', name);
+    const isNumberValid = validateField('number', number);
 
-    this.setState({
-      name: '',
-      number: '',
-    });
+    if (isNameValid && isNumberValid) {
+      const contact = {
+        id: nanoid(),
+        name: name.trim(),
+        number: number,
+      };
+      fillContacts(contact);
+
+      setName('');
+      setNumber('');
+    }
   };
 
-  render() {
-    return (
-      <form className={css.form} onSubmit={this.onSubmit}>
-        <label className={css.label}>
-          Name
-          <input
-            className={css.input}
-            type="text"
-            name="name"
-            title="Name may contain only letters, apostrophe, dash and spaces. For example Adrian, Jacob Mercer, Charles de Batz de Castelmore d'Artagnan"
-            required
-            value={this.state.name}
-            onChange={this.onChange}
-          />
-        </label>
-        <label className={css.label}>
-          Number
-          <input
-            className={css.input}
-            type="tel"
-            name="number"
-            title="Phone number must be digits and can contain spaces, dashes, parentheses and can start with +"
-            required
-            value={this.state.number}
-            onChange={this.onChange}
-          />
-        </label>
-        <button className={css.button} type="submit">
-          Add contact
-        </button>
-      </form>
-    );
-  }
-}
+  return (
+    <form className={css.form} onSubmit={onSubmit}>
+      <label className={css.label}>
+        Name
+        <input
+          className={css.input}
+          type="text"
+          name="name"
+          title="Name may contain only letters, apostrophe, dash and spaces. For example Adrian, Jacob Mercer, Charles de Batz de Castelmore d'Artagnan"
+          required
+          value={name}
+          onChange={onChange}
+        />
+        {errors.name && <span className={css.error}>{errors.name}</span>}
+      </label>
+      <label className={css.label}>
+        Number
+        <input
+          className={css.input}
+          type="tel"
+          name="number"
+          title="Phone number must be digits and can contain spaces, dashes, parentheses and can start with +"
+          required
+          value={number}
+          onChange={onChange}
+        />
+        {errors.number && <span className={css.error}>{errors.number}</span>}
+      </label>
+      <button className={css.button} type="submit">
+        Add contact
+      </button>
+    </form>
+  );
+};
